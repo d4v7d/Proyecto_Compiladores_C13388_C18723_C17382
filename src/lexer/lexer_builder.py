@@ -17,15 +17,40 @@ class FanglessLexer:
         self.lexer = lex.lex(module=self.__class__)
         self.lexer.errors = self.errors
 
+        self.indent_stack = [0]
+        self.token_queue = []
+
+        self.lexer.indent_stack = self.indent_stack
+        self.lexer.token_queue = self.token_queue
+
     def tokenize(self, source_code):
         self.errors.clear()
+        self.indent_stack.clear()
+        self.indent_stack.append(0)
+        self.token_queue.clear()
+
         self.lexer.lineno = 1
         self.lexer.input(source_code)
 
         tokens = []
         while True:
-            token = self.lexer.token()
+            if self.token_queue:
+                token = self.token_queue.pop(0)
+            else:
+                token = self.lexer.token()
+
             if token is None:
+
+                while len(self.indent_stack) > 1:
+                    self.indent_stack.pop()
+
+                    dedent_token = lex.LexToken()
+                    dedent_token.type = "DENT"
+                    dedent_token.value = ""
+                    dedent_token.lineno = self.lexer.lineno
+                    dedent_token.lexpos = self.lexer.lexpos
+                    tokens.append(dedent_token)
+
                 break
             tokens.append(token)
 
