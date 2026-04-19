@@ -25,6 +25,7 @@ tokens = [
     "IDENTIFIER",
     "INTEGER",
     "FLOAT",
+    "STRING",
 
     "PLUS",
     "MINUS",
@@ -59,6 +60,11 @@ tokens = [
     "COLON",
     "COMMA",
     "DOT",
+    "PIPE",
+
+    "INDENT",
+    "DENT",
+
 ] + list(reserved.values())
 
 t_FLOOR_DIVIDE_ASSIGN = r"//="
@@ -94,5 +100,6 @@ t_RBRACE = r"\}"
 t_COLON = r":"
 t_COMMA = r","
 t_DOT = r"\."
+t_PIPE = r"\|"
 
-t_ignore = " \t"
+t_ignore = ""
