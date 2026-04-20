@@ -1,0 +1,34 @@
+# test_stress_errors.fpy
+# Prueba: múltiples caracteres ilegales consecutivos y en distintas posiciones
+#
+# COMPORTAMIENTO ESPERADO:
+#   - El lexer nunca lanza una excepción no manejada
+#
+# ERRORES ESPERADOS (12 en total):
+#   '@' en línea 16
+#   '$' en línea 16
+#   '~' en línea 16
+#   '@' en línea 19
+#   '@' en línea 19
+#   '@' en línea 19
+#   '`' en línea 22
+#   '?' en línea 25
+#   '?' en línea 25
+#   ';' en línea 28
+#   ';' en línea 28
+#   ';' en línea 28
+
+# Tres caracteres ilegales distintos en una misma línea
+x = @$~
+
+# El mismo carácter ilegal repetido tres veces consecutivas (3 errores, no 1)
+y = @@@
+
+# Carácter ilegal dentro de una expresión aritmética válida
+z = 1 + `2` + 3
+
+# Dos signos de pregunta consecutivos
+w = x ?? y
+
+# Punto y coma como separador estilo C
+a = 1; b = 2; c = 3

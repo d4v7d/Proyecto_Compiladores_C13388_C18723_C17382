@@ -1,0 +1,17 @@
+# test_basic.fpy
+# Prueba: declaraciones básicas, asignaciones y llamadas simples
+# Resultado esperado: todos los tokens reconocidos, sin errores
+
+x = 10
+y = 3.14
+nombre = "Fangless"
+
+resultado = x + y
+negativo = -x
+
+def saludar(persona):
+    mensaje = "Hola " + persona
+    return mensaje
+
+class Animal:
+    pass

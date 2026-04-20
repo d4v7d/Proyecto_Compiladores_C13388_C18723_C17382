@@ -1,0 +1,20 @@
+# test_unclosed_strings.fpy
+# Prueba: cadenas de texto que no tienen cierre en la misma línea
+#
+# COMPORTAMIENTO ESPERADO:
+#   - El patrón de t_STRING no coincide porque falta la comilla de cierre
+#   - t_error se activa en la comilla de apertura
+#   - El lexer reporta la comilla como carácter ilegal y continúa
+#   - El resto del contenido de la "cadena" se intenta tokenizar como código
+#
+# ERRORES ESPERADOS:
+#   Lexical error: illegal character '"' at line 16/17/19
+
+# Caso 1: cadena con comilla doble sin cerrar
+nombre = "hola mundo
+
+# Caso 2: cadena con comilla doble, sin cerrar, con contenido especial
+titulo = "Fangless Python lexer
+
+# Caso 3: cadena con comilla simple sin cerrar
+etiqueta = 'sin cierre
