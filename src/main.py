@@ -1,5 +1,8 @@
 """
 Main entry point for running the lexer.
+Reads a source file passed as a command-line argument, runs it through
+the FanglessLexer, and prints each recognized token with its type,
+value, and line number.
 """
 
 import sys

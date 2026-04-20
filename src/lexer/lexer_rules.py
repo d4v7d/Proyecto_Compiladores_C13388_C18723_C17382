@@ -1,5 +1,16 @@
 """
 Lexer rules for the Fangless Python lexer.
+Contains all token rules that require additional logic beyond a plain
+regular expression, implemented as PLY-style t_* functions:
+  - t_STRING:     matches single- and double-quoted strings with escape support.
+  - t_FLOAT:      matches floating-point literals and converts them to float.
+  - t_INTEGER:    matches integer literals and converts them to int.
+  - t_IDENTIFIER: matches identifiers and reclassifies reserved keywords.
+  - t_newline:    tracks indentation changes and enqueues INDENT/DENT tokens.
+  - t_WHITESPACE: silently consumes horizontal whitespace between tokens.
+  - t_COMMENT:    silently consumes single-line comments starting with '#'.
+  - t_error:      handles illegal characters using panic mode recovery,
+                  logging each error and skipping one character to continue.
 """
 
 import ply.lex as lex
