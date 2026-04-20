@@ -17,8 +17,8 @@ import ply.lex as lex
 from .token_definitions import reserved
 
 def t_STRING(token):
-    r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')'
-    token.value = token.value[1:-1]  # Remove quotes
+    r'("(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\n])*\')'
+    token.value = token.value[1:-1]
     return token
 
 def t_FLOAT(token):
@@ -82,10 +82,12 @@ def t_newline(token):
             tok.lexpos = token.lexpos
             token.lexer.token_queue.append(tok)
             
-        if token.lexer.indent_stack[-1] != current_indent:
-             # Indentation error - only report if line is not empty
-             # Check if this is just a blank line with inconsistent indentation
-             pass
+    if token.lexer.indent_stack[-1] != current_indent:
+        message = (
+            f"Lexical error: inconsistent indentation at line {token.lexer.lineno} "
+            f"(got {current_indent} spaces, expected {token.lexer.indent_stack[-1]})"
+        )
+        token.lexer.errors.append(message)
              
     # t_newline itself doesn't return a token to PLY's main loop
     pass

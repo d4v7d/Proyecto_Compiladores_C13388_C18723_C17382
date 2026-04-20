@@ -6,12 +6,12 @@
 #   - El lexer NO se detiene: sigue tokenizando lo que sí es válido
 #
 # ERRORES ESPERADOS (en orden de aparición):
-#   Lexical error: illegal character '@' at line 4
-#   Lexical error: illegal character '$' at line 7
-#   Lexical error: illegal character '`' at line 10
-#   Lexical error: illegal character '~' at line 13
-#   Lexical error: illegal character '?' at line 16
-#   Lexical error: illegal character ';' at line 19 
+#   Lexical error: illegal character '@' at line 17
+#   Lexical error: illegal character '$' at line 20
+#   Lexical error: illegal character '`' at line 23
+#   Lexical error: illegal character '~' at line 23
+#   Lexical error: illegal character '?' at line 29
+#   Lexical error: illegal character ';' at line 32 
 
 # Línea 4: arroba no es un operador válido
 x = 10 @ 5

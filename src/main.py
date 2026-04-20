@@ -31,6 +31,11 @@ def main():
             f"Type: {token.type:<22} Value: {str(token.value):<10} Line: {token.lineno}"
         )
 
+    if lexer.errors:
+        print("\n--- Lexical Errors ---")
+        for error in lexer.errors:
+            print(error)
+
 
 if __name__ == "__main__":
     main()
