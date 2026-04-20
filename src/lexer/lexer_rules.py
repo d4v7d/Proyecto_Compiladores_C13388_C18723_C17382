@@ -1,13 +1,24 @@
 """
 Lexer rules for the Fangless Python lexer.
+Contains all token rules that require additional logic beyond a plain
+regular expression, implemented as PLY-style t_* functions:
+  - t_STRING:     matches single- and double-quoted strings with escape support.
+  - t_FLOAT:      matches floating-point literals and converts them to float.
+  - t_INTEGER:    matches integer literals and converts them to int.
+  - t_IDENTIFIER: matches identifiers and reclassifies reserved keywords.
+  - t_newline:    tracks indentation changes and enqueues INDENT/DENT tokens.
+  - t_WHITESPACE: silently consumes horizontal whitespace between tokens.
+  - t_COMMENT:    silently consumes single-line comments starting with '#'.
+  - t_error:      handles illegal characters using panic mode recovery,
+                  logging each error and skipping one character to continue.
 """
 
 import ply.lex as lex
 from .token_definitions import reserved
 
 def t_STRING(token):
-    r'("(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\')'
-    token.value = token.value[1:-1]  # Remove quotes
+    r'("(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\n])*\')'
+    token.value = token.value[1:-1]
     return token
 
 def t_FLOAT(token):
@@ -71,10 +82,12 @@ def t_newline(token):
             tok.lexpos = token.lexpos
             token.lexer.token_queue.append(tok)
             
-        if token.lexer.indent_stack[-1] != current_indent:
-             # Indentation error - only report if line is not empty
-             # Check if this is just a blank line with inconsistent indentation
-             pass
+    if token.lexer.indent_stack[-1] != current_indent:
+        message = (
+            f"Lexical error: inconsistent indentation at line {token.lexer.lineno} "
+            f"(got {current_indent} spaces, expected {token.lexer.indent_stack[-1]})"
+        )
+        token.lexer.errors.append(message)
              
     # t_newline itself doesn't return a token to PLY's main loop
     pass

@@ -1,5 +1,12 @@
 """
 Lexer builder for the Fangless Python project.
+FanglessLexer is the central class that combines token definitions and
+lexer rules into a single PLY lexer instance. It manages two key shared
+data structures:
+  - indent_stack.
+  - token_queue.
+All t_* attributes from token_definitions and lexer_rules are copied onto
+the class dynamically via setattr so that PLY can discover them.
 """
 
 import ply.lex as lex

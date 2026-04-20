@@ -1,0 +1,32 @@
+# test_unknown_chars.fpy
+# Prueba: caracteres que NO pertenecen al alfabeto de Fangless Python
+#
+# COMPORTAMIENTO ESPERADO:
+#   - Mensaje de error por cada carácter ilegal encontrado
+#   - El lexer NO se detiene: sigue tokenizando lo que sí es válido
+#
+# ERRORES ESPERADOS (en orden de aparición):
+#   Lexical error: illegal character '@' at line 17
+#   Lexical error: illegal character '$' at line 20
+#   Lexical error: illegal character '`' at line 23
+#   Lexical error: illegal character '~' at line 23
+#   Lexical error: illegal character '?' at line 29
+#   Lexical error: illegal character ';' at line 32 
+
+# Línea 4: arroba no es un operador válido
+x = 10 @ 5
+
+# Línea 7: signo de dólar no es un identificador válido
+$precio = 100
+
+# Línea 10: backtick no existe en el lenguaje
+resultado = `comando`
+
+# Línea 13: tilde no es un operador
+y = ~x
+
+# Línea 16: signo de pregunta no existe
+condicion = x > 0 ? x : 0
+
+# Línea 19: el punto y coma no es delimitador en Fangless Python
+a = 1; b = 2

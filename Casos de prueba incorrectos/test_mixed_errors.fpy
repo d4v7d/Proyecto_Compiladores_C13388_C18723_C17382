@@ -1,0 +1,38 @@
+# test_mixed_errors.fpy
+# Prueba: múltiples tipos de errores mezclados con código válido
+#
+# COMPORTAMIENTO ESPERADO: El lexer opera en modo de pánico: reporta cada error y continúa
+#
+# ERRORES:
+#   Lexical error: illegal character '@' at line 19
+#   Lexical error: illegal character '$' at line 24
+#   Lexical error: illegal character '"' at line 30  (cadena sin cerrar)
+#   Lexical error: illegal character '?' at line 35
+
+# Código válido antes del primer error
+def calcular(a, b):
+    return a + b
+
+resultado = calcular(3, 4)
+
+# Error 1: operador @ no existe
+x = resultado @ 10
+
+y = x * 2
+
+# Error 2: identificador con $
+$var = 99
+
+if y > 0:
+    pass
+
+# Error 3: cadena sin cerrar
+mensaje = "texto sin cierre
+
+z = 1 + 2
+
+# Error 4: operador ternario estilo C no existe en Fangless Python
+valor = z > 0 ? z : 0
+
+def fin():
+    return True

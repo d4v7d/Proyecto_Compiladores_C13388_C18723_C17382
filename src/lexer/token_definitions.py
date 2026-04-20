@@ -1,5 +1,8 @@
 """
 Token definitions for the Fangless Python lexer.
+Defines the 'reserved' dictionary mapping keyword strings to their token
+types, the master 'tokens' list required by PLY, and all simple pattern
+rules (t_* string variables).
 """
 
 reserved = {
