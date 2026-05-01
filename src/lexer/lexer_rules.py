@@ -7,6 +7,7 @@ regular expression, implemented as PLY-style t_* functions:
   - t_INTEGER:    matches integer literals and converts them to int.
   - t_IDENTIFIER: matches identifiers and reclassifies reserved keywords.
   - t_newline:    tracks indentation changes and enqueues INDENT/DENT tokens.
+  - t_emptyline:  silently ignores empty lines (only spaces/tabs between newlines).
   - t_WHITESPACE: silently consumes horizontal whitespace between tokens.
   - t_COMMENT:    silently consumes single-line comments starting with '#'.
   - t_error:      handles illegal characters using panic mode recovery,
@@ -46,6 +47,17 @@ def t_error(token):
     )
     token.lexer.errors.append(message)
     token.lexer.skip(1)
+
+
+def t_emptyline(token):
+    r"\n[ \t]*\n"
+    """
+    Matches empty lines (lines with only spaces/tabs between newlines).
+    These lines are ignored and not tokenized.
+    Must be defined BEFORE t_newline to have priority.
+    """
+    token.lexer.lineno += token.value.count('\n')
+    pass
 
 
 def t_newline(token):
@@ -89,8 +101,9 @@ def t_newline(token):
         )
         token.lexer.errors.append(message)
              
-    # t_newline itself doesn't return a token to PLY's main loop
-    pass
+    # Return any enqueued INDENT/DENT tokens before continuing to the next token
+    if token.lexer.token_queue:
+        return token.lexer.token_queue.pop(0)
 
 
 def t_WHITESPACE(token):
