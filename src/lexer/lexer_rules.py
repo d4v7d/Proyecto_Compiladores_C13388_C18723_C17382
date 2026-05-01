@@ -23,7 +23,7 @@ def t_STRING(token):
     return token
 
 def t_FLOAT(token):
-    r"\d+\.\d+"
+    r"\d*\.\d+"
     token.value = float(token.value)
     return token
 
@@ -38,15 +38,6 @@ def t_IDENTIFIER(token):
     r"[a-zA-Z_][a-zA-Z0-9_]*"
     token.type = reserved.get(token.value, "IDENTIFIER")
     return token
-
-
-def t_error(token):
-    message = (
-        f"Lexical error: illegal character '{token.value[0]}' "
-        f"at line {token.lineno}"
-    )
-    token.lexer.errors.append(message)
-    token.lexer.skip(1)
 
 
 def t_emptyline(token):
@@ -114,3 +105,12 @@ def t_WHITESPACE(token):
 def t_COMMENT(token):
     r"\#.*"
     pass
+
+
+def t_error(token):
+    message = (
+        f"Lexical error: illegal character '{token.value[0]}' "
+        f"at line {token.lineno}"
+    )
+    token.lexer.errors.append(message)
+    token.lexer.skip(1)
