@@ -7,6 +7,7 @@ regular expression, implemented as PLY-style t_* functions:
   - t_INTEGER:    matches integer literals and converts them to int.
   - t_IDENTIFIER: matches identifiers and reclassifies reserved keywords.
   - t_newline:    tracks indentation changes and enqueues INDENT/DENT tokens.
+                  Normalizes tabs to spaces and detects tab/space mixing.
   - t_emptyline:  silently ignores empty lines (only spaces/tabs between newlines).
   - t_WHITESPACE: silently consumes horizontal whitespace between tokens.
   - t_COMMENT:    silently consumes single-line comments starting with '#'.
@@ -16,6 +17,40 @@ regular expression, implemented as PLY-style t_* functions:
 
 import ply.lex as lex
 from .token_definitions import reserved
+
+
+def normalize_indentation(indent_str, tab_width=8):
+    """
+    Normalize indentation by converting tabs to spaces.
+    
+    In Python, a tab advances to the next multiple of tab_width (default 8).
+    This function:
+    1. Converts the indentation string to equivalent spaces
+    2. Detects and reports mixing of tabs and spaces (which Python doesn't allow)
+    
+    Args:
+        indent_str: The indentation string (spaces and/or tabs)
+        tab_width: The width of a tab in spaces (default 8)
+    
+    Returns:
+        Tuple: (normalized_indent_length, has_mixed_tabs_spaces)
+        - normalized_indent_length: The column position after this indentation
+        - has_mixed_tabs_spaces: True if both tabs and spaces are present
+    """
+    has_tabs = '\t' in indent_str
+    has_spaces = ' ' in indent_str
+    has_mixed = has_tabs and has_spaces
+    
+    # Calculate the column position by processing each character
+    column = 0
+    for char in indent_str:
+        if char == '\t':
+            # Tab advances to the next multiple of tab_width
+            column = ((column // tab_width) + 1) * tab_width
+        elif char == ' ':
+            column += 1
+    
+    return column, has_mixed
 
 def t_STRING(token):
     r'("(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\n])*\')'
@@ -42,9 +77,11 @@ def t_IDENTIFIER(token):
 
 
 def t_emptyline(token):
-    r"\n[ \t]*\n"
+    r"\n(?:[ \t]*\n)+"
     """
-    Matches empty lines (lines with only spaces/tabs between newlines).
+    Matches one or more empty lines (lines with only spaces/tabs between newlines).
+    Captures all consecutive blank lines in a single match to avoid overlap issues.
+    Pattern: newline followed by one or more (optional spaces/tabs + newline).
     These lines are ignored and not tokenized.
     Must be defined BEFORE t_newline to have priority.
     """
@@ -88,8 +125,35 @@ def t_newline(token):
     if paren_depth > 0:
         return
     
-    # Assuming 1 space = 1 level for simplicity, adjust if tabs are mixed
-    current_indent = len(indent_str) 
+    # Detect tabs vs spaces in this line (for error checking)
+    has_tabs_in_line = '\t' in indent_str
+    has_spaces_in_line = ' ' in indent_str
+    
+    # Track if we've seen tabs and/or spaces across all lines
+    if has_tabs_in_line:
+        token.lexer.seen_tabs = True
+    if has_spaces_in_line:
+        token.lexer.seen_spaces = True
+    
+    # Check for mixing tabs and spaces across the file
+    if token.lexer.seen_tabs and token.lexer.seen_spaces:
+        message = (
+            f"Lexical error: inconsistent use of tabs and spaces at line {token.lexer.lineno}"
+        )
+        token.lexer.errors.append(message)
+        return
+    
+    # Normalize indentation: convert tabs to spaces and detect mixing within the line
+    current_indent, has_mixed_tabs_spaces = normalize_indentation(indent_str)
+    
+    # Python doesn't allow mixing tabs and spaces in the same indentation
+    if has_mixed_tabs_spaces:
+        message = (
+            f"Lexical error: inconsistent use of tabs and spaces at line {token.lexer.lineno}"
+        )
+        token.lexer.errors.append(message)
+        return
+    
     last_indent = token.lexer.indent_stack[-1]
 
     if current_indent > last_indent:
