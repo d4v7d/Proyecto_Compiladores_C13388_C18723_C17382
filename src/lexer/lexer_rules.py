@@ -22,6 +22,7 @@ def t_STRING(token):
     token.value = token.value[1:-1]
     return token
 
+
 def t_FLOAT(token):
     r"\d*\.\d+"
     token.value = float(token.value)
@@ -59,6 +60,33 @@ def t_newline(token):
     # Calculate spaces (indentation) after the last newline
     last_newline_index = token.value.rfind('\n')
     indent_str = token.value[last_newline_index + 1:]
+    
+    # Peek ahead to see if this line is blank or only contains a comment
+    # If so, don't count this indentation level
+    lexpos_after_spaces = token.lexpos + len(token.value)
+    remaining_input = token.lexer.lexdata[lexpos_after_spaces:]
+    
+    # Check if the line is blank (only spaces/tabs before next newline) or starts with comment
+    first_char_match = remaining_input.lstrip('\t ')[:1] if remaining_input else ''
+    
+    # If this line is blank or contains only a comment, skip indentation processing
+    if first_char_match in ('\n', '\r', '#', ''):
+        # This is either a blank line or a comment-only line - don't emit INDENT/DENT
+        return
+    
+    # Check if we're inside parentheses/brackets/braces (continuation line)
+    # by counting unmatched opening brackets up to this point
+    code_before = token.lexer.lexdata[:token.lexpos]
+    paren_depth = 0
+    for char in code_before:
+        if char in '([{':
+            paren_depth += 1
+        elif char in ')]}':
+            paren_depth -= 1
+    
+    # If we're inside parentheses/brackets/braces, don't process indentation
+    if paren_depth > 0:
+        return
     
     # Assuming 1 space = 1 level for simplicity, adjust if tabs are mixed
     current_indent = len(indent_str) 
