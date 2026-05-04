@@ -5,6 +5,7 @@ lexer rules into a single PLY lexer instance. It manages two key shared
 data structures:
   - indent_stack.
   - token_queue.
+  - paren_depth: tracks nesting level of (), [], {} for continuation lines.
 All t_* attributes from token_definitions and lexer_rules are copied onto
 the class dynamically via setattr so that PLY can discover them.
 """
@@ -26,17 +27,29 @@ class FanglessLexer:
 
         self.indent_stack = [0]
         self.token_queue = []
+        self.paren_depth = 0
+        self.seen_tabs = False
+        self.seen_spaces = False
 
         self.lexer.indent_stack = self.indent_stack
         self.lexer.token_queue = self.token_queue
+        self.lexer.paren_depth = self.paren_depth
+        self.lexer.seen_tabs = self.seen_tabs
+        self.lexer.seen_spaces = self.seen_spaces
 
     def tokenize(self, source_code):
         self.errors.clear()
         self.indent_stack.clear()
         self.indent_stack.append(0)
         self.token_queue.clear()
+        self.paren_depth = 0
+        self.seen_tabs = False
+        self.seen_spaces = False
 
         self.lexer.lineno = 1
+        self.lexer.paren_depth = self.paren_depth
+        self.lexer.seen_tabs = self.seen_tabs
+        self.lexer.seen_spaces = self.seen_spaces
         self.lexer.input(source_code)
 
         tokens = []
