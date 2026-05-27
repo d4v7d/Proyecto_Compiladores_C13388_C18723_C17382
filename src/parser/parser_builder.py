@@ -1,0 +1,81 @@
+"""Parser builder for the Fangless Python project."""
+
+import ply.yacc as yacc
+
+from lexer.lexer_builder import FanglessLexer
+from lexer.token_definitions import tokens
+
+from . import grammar_rules
+from .parser_errors import ParserError
+from .precedence import precedence
+
+
+class _TokenStream:
+    """Small adapter that lets yacc consume a pre-tokenized list."""
+
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.index = 0
+
+    def token(self):
+        if self.index >= len(self.tokens):
+            return None
+
+        token = self.tokens[self.index]
+        self.index += 1
+        return token
+
+
+class FanglessParser:
+    """Builds and runs the Fangless parser with PLY yacc."""
+
+    tokens = tokens
+    precedence = precedence
+
+    def __init__(self, **yacc_options):
+        self.errors = []
+        self.lexer = FanglessLexer()
+        self.source_code = ""
+        yacc_options.setdefault("debug", False)
+        yacc_options.setdefault("write_tables", False)
+        yacc_options.setdefault("errorlog", yacc.NullLogger())
+        self.parser = yacc.yacc(module=self, **yacc_options)
+
+    def parse(self, source_code):
+        self.errors.clear()
+        self.source_code = source_code
+        token_list = self.lexer.tokenize(source_code)
+        token_stream = _TokenStream(token_list)
+        ast = self.parser.parse(lexer=token_stream)
+
+        for error in self.lexer.errors:
+            self.errors.append(ParserError(error))
+
+        if self.errors:
+            return None
+
+        return ast
+
+    @staticmethod
+    def find_column(source_code, token):
+        line_start = source_code.rfind("\n", 0, token.lexpos) + 1
+        return (token.lexpos - line_start) + 1
+
+    def p_error(self, token):
+        if token is None:
+            self.errors.append(ParserError("unexpected end of input"))
+            return
+
+        self.errors.append(
+            ParserError(
+                "unexpected token",
+                line=token.lineno,
+                column=self.find_column(self.source_code, token),
+                token=f"{token.type}({token.value!r})",
+            )
+        )
+
+
+for name in dir(grammar_rules):
+    if name.startswith("p_"):
+        setattr(FanglessParser, name, staticmethod(getattr(grammar_rules, name)))

@@ -86,7 +86,9 @@ def t_emptyline(token):
     Must be defined BEFORE t_newline to have priority.
     """
     token.lexer.lineno += token.value.count('\n')
-    pass
+    token.type = "NEWLINE"
+    token.value = "\n"
+    return token
 
 
 def t_newline(token):
@@ -183,10 +185,10 @@ def t_newline(token):
             f"(got {current_indent} spaces, expected {token.lexer.indent_stack[-1]})"
         )
         token.lexer.errors.append(message)
-             
-    # Return any enqueued INDENT/DENT tokens before continuing to the next token
-    if token.lexer.token_queue:
-        return token.lexer.token_queue.pop(0)
+
+    token.type = "NEWLINE"
+    token.value = "\n"
+    return token
 
 
 def t_WHITESPACE(token):

@@ -1,15 +1,18 @@
 """
-Main entry point for running the lexer.
-Reads a source file passed as a command-line argument, runs it through
-the FanglessLexer, and prints each recognized token with its type,
-value, and line number.
+Main entry point for running the lexer and parser.
+Reads a source file passed as a command-line argument, prints the tokens
+recognized by the lexer, and then runs the parser over the same source.
 """
 
 import sys
 from lexer.lexer_builder import FanglessLexer
+from parser.parser_builder import FanglessParser
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     if len(sys.argv) != 2:
         print("Usage: python src/main.py <input_file>")
         sys.exit(1)
@@ -35,6 +38,19 @@ def main():
         print("\n--- Lexical Errors ---")
         for error in lexer.errors:
             print(error)
+
+    parser = FanglessParser()
+    ast = parser.parse(source_code)
+
+    print("\n--- Parser ---")
+    if parser.errors:
+        print("Syntax errors found:")
+        for error in parser.errors:
+            print(error)
+    else:
+        print("Parse successful")
+        if ast is not None:
+            print(ast.pretty_print())
 
 
 if __name__ == "__main__":
