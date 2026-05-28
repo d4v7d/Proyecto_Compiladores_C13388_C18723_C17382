@@ -29,6 +29,7 @@ tokens = [
     "INTEGER",
     "FLOAT",
     "STRING",
+    "NEWLINE",
 
     "PLUS",
     "MINUS",

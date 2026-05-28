@@ -1,0 +1,6 @@
+x = 5
+x += 3
+y = 2 + 3 * 4
+z = (2 + 3) * 4
+flag = True and not False
+result = x >= 10
