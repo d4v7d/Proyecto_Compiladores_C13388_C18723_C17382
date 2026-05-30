@@ -1,0 +1,4 @@
+if True:
+    x = 1
+elif True:
+    x = 2
