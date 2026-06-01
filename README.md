@@ -1,7 +1,197 @@
-# Proyecto_Compiladores_C13388_C18723_C17382
-# Analizador Léxico
+# Compilador Fangless Python a C++
 
-Implementación de un analizador léxico (*lexer*) construido con PLY. El lexer transforma código en una secuencia de tokens clasificados, incluyendo manejo de indentación sensible al contexto usando los tokens `INDENT` y `DENT`.
+Compilador que traduce una versión simplificada de Python a C++, desarrollado con PLY (Python Lex-Yacc). Implementa un lexer completo (100%) y un parser parcial con características principales funcionando.
+
+---
+
+## 📊 Estado del Proyecto
+
+| Componente | Estado | Progreso |
+|-----------|--------|----------|
+| **Lexer** | ✅ Completo | 168/168 tests (100%) |
+| **Parser** | ⚠️ Parcial | 54/54 tests sin considerar elif/else/clases |
+| **Documentación** | ⚠️ En progreso | Este README |
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+Proyecto/
+├── README.md                          # Este archivo
+├── requirements.txt                   # Dependencias
+├── src/
+│   ├── main.py                        # Punto de entrada
+│   ├── lexer/
+│   │   ├── __init__.py
+│   │   ├── token_definitions.py       # Tokens y palabras clave
+│   │   ├── lexer_rules.py             # Reglas del lexer
+│   │   └── lexer_builder.py           # Clase FanglessLexer
+│   └── parser/
+│       ├── __init__.py
+│       ├── grammar_rules.py           # Reglas gramaticales (PLY)
+│       ├── ast_nodes.py               # Nodos del AST
+│       ├── parser_builder.py          # Clase FanglessParser
+│       ├── parser_errors.py           # Manejo de errores
+│       └── precedence.py              # Precedencia de operadores
+├── Casos de prueba/                   # Pruebas del lexer por categoría
+├── Casos de prueba extra/             # Pruebas adicionales
+├── Casos de prueba incorrectos/       # Casos con errores esperados
+└── Test Files/                        # Tests del parser
+    ├── test_parser_batch.py           # Suite principal
+    └── test_*.py                      # Tests individuales
+
+---
+
+## ✅ Características Completadas
+
+### Lexer (100%)
+- ✅ Identificadores, números (int/float), strings, booleanos
+- ✅ Palabras clave: if, else, elif, while, for, def, return, break, continue, pass, try, except, finally, raise, class, and, or, not, True, False
+- ✅ Operadores: aritméticos, comparación, asignación, lógicos
+- ✅ Delimitadores: paréntesis, corchetes, llaves, dos puntos, coma, punto
+- ✅ Indentación: tokens INDENT/DENT para bloques
+- ✅ Comentarios: línea única (#)
+- ✅ Escape sequences: \n, \t, \\, \", \'
+
+### Parser - Control de Flujo
+- ✅ **If statements** (sin elif/else)
+- ✅ **While loops**
+- ✅ **For loops** con iteración
+- ✅ **Break, Continue, Pass**
+
+### Parser - Funciones
+- ✅ Definición de funciones: `def nombre(param1, param2=default):`
+- ✅ Parámetros posicionales y con valores por defecto
+- ✅ Llamadas de función con argumentos
+
+### Parser - Expresiones
+- ✅ Operadores aritméticos: +, -, *, /, //, %, **
+- ✅ Operadores de comparación: ==, !=, <, >, <=, >=
+- ✅ Operadores lógicos: and, or, not
+- ✅ Operadores unarios: -, +
+- ✅ Precedencia correcta
+- ✅ Expresiones agrupadas con paréntesis
+
+### Parser - Asignaciones
+- ✅ Asignación simple: `x = valor`
+- ✅ Asignación compuesta: `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `**=`
+
+### Parser - Estructuras de Datos
+- ✅ **Listas**: Creación `[1, 2, 3]`, acceso `lista[0]`
+- ⚠️ **Tuplas, Diccionarios, Conjuntos**: Sin soporte
+
+### Parser - Manejo de Excepciones
+- ✅ `try-except` genérico
+- ✅ `try-except` tipado: `except ValueError`
+- ✅ `except ... as var`: `except ValueError as e`
+- ✅ `try-finally`
+- ✅ `try-except-finally`
+- ✅ `raise` statements
+
+### Parser - I/O y Tipos
+- ✅ `print()` e `input()`
+- ✅ Enteros, Flotantes, Strings, Booleanos
+- ✅ Acceso a atributos: `objeto.atributo`
+- ✅ `return` con/sin valor
+
+---
+
+## ❌ Características Pendientes
+
+### 🔴 CRÍTICAS (Enunciado las requiere)
+
+#### 1. **Elif/Else Chains** (~10-15% del proyecto)
+```python
+# ❌ No soportado:
+if x > 0:
+    print("positivo")
+elif x < 0:
+    print("negativo")
+else:
+    print("cero")
+```
+**Bloqueador técnico**: Conflicto entre tokens DENT y análisis LR(1) de PLY.  
+**Solución propuesta**: Fusión de tokens a nivel léxico.
+
+#### 2. **Clases y OOP** (~25-30% del proyecto)
+```python
+# ❌ No soportado:
+class MiClase:
+    def __init__(self, valor):
+        self.valor = valor
+    def metodo(self):
+        return self.valor
+```
+**Lo que falta**: class, herencia, métodos, atributos, self implícito.
+
+#### 3. **Estructuras Avanzadas** (~15-20%)
+- ❌ **Tuplas**: `(1, 2, 3)` y desempaquetado
+- ❌ **Diccionarios**: `{key: value}` y acceso
+- ❌ **Conjuntos**: `{1, 2, 3}` y operaciones
+
+### 🟡 IMPORTANTES
+
+#### 4. **Métodos de Estructuras de Datos**
+- ❌ Strings: `lower()`, `upper()`, `find()`, `replace()`, `split()`, `join()`
+- ❌ Listas: `append()`, `remove()`, `index()`, `sort()`, `reverse()`
+- ❌ Diccionarios: `get()`, `keys()`, `values()`, `items()`
+- ❌ Conjuntos: `add()`, `remove()`, `union()`, `intersection()`
+
+#### 5. **Slicing** (~5-10%)
+- ❌ `texto[1:3]`, `lista[0:2]`, `texto[::2]`
+
+#### 6. **Desempaquetado**
+- ❌ `a, b = 1, 2`
+- ❌ `x, y = func()`
+
+---
+
+## 🚀 Instalación y Uso
+
+### Requisitos
+```
+Python 3.8+
+PLY 3.11
+```
+
+### Instalar
+```bash
+pip install -r requirements.txt
+```
+
+### Ejecutar Lexer
+```bash
+python src/main.py archivo.py
+```
+
+### Ejecutar Parser Tests
+```bash
+python Test\ Files/test_parser_batch.py
+```
+
+**Resultado**:
+```
+=== PARSER BATCH TEST ===
+--- Condicionales ---
+✓ test_1.py
+...
+Success Rate: 100.0%
+```
+
+---
+
+## 📊 Resultados de Tests
+
+### Lexer: ✅ 100% (168/168)
+Todos los casos de prueba pasan.
+
+### Parser: ⚠️ 100% (54/54 tests reportados)
+**Nota**: Los tests pasan porque ignoran características no implementadas.
+- Condicionales: 16/16 ✅ (sin elif/else)
+- For: 20/20 ✅
+- While: 6/6 ✅
+- Funciones: 12/12 ✅
 
 ---
 
