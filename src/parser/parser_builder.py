@@ -6,6 +6,7 @@ from lexer.lexer_builder import FanglessLexer
 from lexer.token_definitions import tokens
 
 from . import grammar_rules
+from . import grammar_extensions
 from .parser_errors import ParserError
 from .precedence import precedence
 
@@ -38,7 +39,7 @@ class FanglessParser:
         self.source_code = ""
         yacc_options.setdefault("debug", False)
         yacc_options.setdefault("write_tables", False)
-        yacc_options.setdefault("errorlog", yacc.NullLogger())
+        #yacc_options.setdefault("errorlog", yacc.NullLogger())
         self.parser = yacc.yacc(module=self, **yacc_options)
 
     def parse(self, source_code):
@@ -79,3 +80,13 @@ class FanglessParser:
 for name in dir(grammar_rules):
     if name.startswith("p_"):
         setattr(FanglessParser, name, staticmethod(getattr(grammar_rules, name)))
+
+# Load extensions AFTER base rules. They override limited versions:
+#   p_expression_attribute  (was IDENTIFIER.IDENTIFIER, now expression.IDENTIFIER)
+#   p_expression_subscript  (was IDENTIFIER[expr], now expression[expr])
+
+#   adds new rules for: class_def, method_call, slicing, tuples, dicts, sets,
+#   attribute_assignment, subscript_assignment.
+for name in dir(grammar_extensions):
+    if name.startswith("p_"):
+        setattr(FanglessParser, name, staticmethod(getattr(grammar_extensions, name)))

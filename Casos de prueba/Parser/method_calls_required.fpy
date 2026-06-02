@@ -1,0 +1,21 @@
+text = "Hello"
+lowered = text.lower()
+uppered = text.upper()
+position = text.find("e")
+replaced = text.replace("H", "J")
+
+items = [1, 2, 3]
+items.append(4)
+items.remove(2)
+index = items.index(3)
+
+data = {"a": 1}
+value = data.get("a")
+keys = data.keys()
+values = data.values()
+
+numbers = {1, 2, 3}
+numbers.add(4)
+numbers.remove(2)
+combined = numbers.union({5})
+common = numbers.intersection({1})

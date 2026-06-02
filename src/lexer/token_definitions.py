@@ -22,6 +22,13 @@ reserved = {
     "and": "AND",
     "or": "OR",
     "not": "NOT",
+    # New rules
+    "try":      "TRY",
+    "except":   "EXCEPT",
+    "finally":  "FINALLY",
+    "raise":    "RAISE",
+    "as":       "AS",
+    "in":       "IN",
 }
 
 tokens = [
