@@ -333,29 +333,29 @@ def p_except_clause_list_multiple(parser):
 
 
 def p_except_clause_generic(parser):
-    "except_clause : DENT EXCEPT COLON NEWLINE indented_block"
-    parser[0] = ASTNode("except_clause", children=[ASTNode("block", children=parser[5])])
+    "except_clause : EXCEPT COLON NEWLINE indented_block"
+    parser[0] = ASTNode("except_clause", children=[ASTNode("block", children=parser[4])])
 
 
 def p_except_clause_typed(parser):
-    "except_clause : DENT EXCEPT IDENTIFIER COLON NEWLINE indented_block"
+    "except_clause : EXCEPT IDENTIFIER COLON NEWLINE indented_block"
     parser[0] = ASTNode(
         "except_clause",
         children=[
-            ASTNode("exception_type", value=parser[3]),
-            ASTNode("block", children=parser[6]),
+            ASTNode("exception_type", value=parser[2]),
+            ASTNode("block", children=parser[5]),
         ]
     )
 
 
 def p_except_clause_typed_as(parser):
-    "except_clause : DENT EXCEPT IDENTIFIER AS IDENTIFIER COLON NEWLINE indented_block"
+    "except_clause : EXCEPT IDENTIFIER AS IDENTIFIER COLON NEWLINE indented_block"
     parser[0] = ASTNode(
         "except_clause",
         children=[
-            ASTNode("exception_type", value=parser[3]),
-            ASTNode("exception_var", value=parser[5]),
-            ASTNode("block", children=parser[8]),
+            ASTNode("exception_type", value=parser[2]),
+            ASTNode("exception_var", value=parser[4]),
+            ASTNode("block", children=parser[7]),
         ]
     )
 
