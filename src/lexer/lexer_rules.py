@@ -80,12 +80,67 @@ def t_emptyline(token):
     r"\n(?:[ \t]*\n)+"
     """
     Matches one or more empty lines (lines with only spaces/tabs between newlines).
-    Captures all consecutive blank lines in a single match to avoid overlap issues.
-    Pattern: newline followed by one or more (optional spaces/tabs + newline).
-    These lines are ignored and not tokenized.
     Must be defined BEFORE t_newline to have priority.
+    After consuming blank lines, peeks at the next non-blank line's indentation
+    to emit any INDENT/DENT tokens that the blank lines may have passed by.
     """
     token.lexer.lineno += token.value.count('\n')
+
+    # Peek at the indentation of the first non-blank line after the empty lines
+    lexpos_after = token.lexpos + len(token.value)
+    remaining = token.lexer.lexdata[lexpos_after:]
+
+    indent_str = ''
+    for char in remaining:
+        if char in ' \t':
+            indent_str += char
+        else:
+            break
+
+    # Skip indentation processing if next content is blank, comment, or EOF
+    rest = remaining[len(indent_str):]
+    if not rest:
+        # End of file — don't emit trailing NEWLINE (mirrors t_newline behavior)
+        return None
+    if rest[0] in ('\n', '\r', '#'):
+        token.type = "NEWLINE"
+        token.value = "\n"
+        return token
+
+    # Skip if inside parentheses/brackets/braces (continuation line)
+    paren_depth = 0
+    for char in token.lexer.lexdata[:token.lexpos]:
+        if char in '([{':
+            paren_depth += 1
+        elif char in ')]}':
+            paren_depth -= 1
+    if paren_depth > 0:
+        token.type = "NEWLINE"
+        token.value = "\n"
+        return token
+
+    # Process indentation change relative to the current indent stack
+    current_indent, _ = normalize_indentation(indent_str)
+    last_indent = token.lexer.indent_stack[-1]
+
+    if current_indent > last_indent:
+        token.lexer.indent_stack.append(current_indent)
+        tok = lex.LexToken()
+        tok.type = 'INDENT'
+        tok.value = indent_str
+        tok.lineno = token.lexer.lineno
+        tok.lexpos = token.lexpos
+        token.lexer.token_queue.append(tok)
+    elif current_indent < last_indent:
+        while token.lexer.indent_stack[-1] > current_indent:
+            token.lexer.indent_stack.pop()
+            tok = lex.LexToken()
+            tok.type = 'DENT'
+            tok.value = ''
+            tok.lineno = token.lexer.lineno
+            tok.lexpos = token.lexpos
+            token.lexer.token_queue.append(tok)
+
     token.type = "NEWLINE"
     token.value = "\n"
     return token
