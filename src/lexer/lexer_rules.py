@@ -2,7 +2,9 @@
 Lexer rules for the Fangless Python lexer.
 Contains all token rules that require additional logic beyond a plain
 regular expression, implemented as PLY-style t_* functions:
-  - t_STRING:     matches single- and double-quoted strings with escape support.
+  - t_INVALID_STRING_ESCAPE:
+                  reports strings containing unsupported escape sequences.
+  - t_STRING:     matches single- and double-quoted strings with valid escape support.
   - t_FLOAT:      matches floating-point literals and converts them to float.
   - t_INTEGER:    matches integer literals and converts them to int.
   - t_IDENTIFIER: matches identifiers and reclassifies reserved keywords.
@@ -52,8 +54,38 @@ def normalize_indentation(indent_str, tab_width=8):
     
     return column, has_mixed
 
+
+def get_column(lexer, lexpos):
+    line_start = lexer.lexdata.rfind("\n", 0, lexpos) + 1
+    return (lexpos - line_start) + 1
+
+
+def t_INVALID_STRING_ESCAPE(token):
+    r'("(?:\\[nt\\\"\']|[^"\\\n])*\\[^nt\\\"\'](?:\\.|[^"\\\n])*"|\'(?:\\[nt\\\"\']|[^\'\\\n])*\\[^nt\\\"\'](?:\\.|[^\'\\\n])*\')'
+    escape_index = None
+    index = 1
+    while index < len(token.value) - 1:
+        if token.value[index] == "\\":
+            escaped_char = token.value[index + 1]
+            if escaped_char not in "nt\\\"'":
+                escape_index = index
+                break
+            index += 2
+        else:
+            index += 1
+
+    error_lexpos = token.lexpos + (escape_index if escape_index is not None else 0)
+    column = get_column(token.lexer, error_lexpos)
+    invalid_escape = token.value[escape_index:escape_index + 2] if escape_index is not None else "\\"
+    message = (
+        f"Lexical error: invalid escape sequence '{invalid_escape}' "
+        f"at line {token.lineno}, column {column}"
+    )
+    token.lexer.errors.append(message)
+
+
 def t_STRING(token):
-    r'("(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\n])*\')'
+    r'("(?:\\[nt\\\"\']|[^"\\\n])*"|\'(?:\\[nt\\\"\']|[^\'\\\n])*\')'
     token.value = token.value[1:-1]
     return token
 

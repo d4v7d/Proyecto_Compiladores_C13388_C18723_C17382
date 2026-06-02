@@ -38,6 +38,7 @@ def main():
         print("\n--- Lexical Errors ---")
         for error in lexer.errors:
             print(error)
+        return
 
     parser = FanglessParser()
     ast = parser.parse(source_code)
