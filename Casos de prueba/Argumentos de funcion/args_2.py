@@ -1,4 +1,4 @@
-def say_hello_to(*names):
+def say_hello_to(a, names=1, b):
   print("Hello, ", names[1], " and ", names[-1])
 
 say_hello_to("Camila", "Dariel", "Danny") 
