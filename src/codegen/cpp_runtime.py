@@ -7,6 +7,7 @@ def get_cpp_runtime() -> str:
 #include <stdexcept>
 #include <sstream>
 #include <cstddef>
+#include <cmath>
 
 // Runtime errors
 // Used for invalid operations, failed conversions, and out-of-range access.
@@ -205,6 +206,28 @@ PyValue py_mod(const PyValue& left, const PyValue& right) {
         return PyValue(py_as_int(left) % divisor);
     }
     throw PyRuntimeError(py_unsupported_operand_types("%", left, right));
+}
+
+PyValue py_floor_div(const PyValue& left, const PyValue& right) {
+    if (py_is_number(left) && py_is_number(right)) {
+        double divisor = py_as_double(right);
+        if (divisor == 0.0) {
+            throw PyRuntimeError("Division by zero");
+        }
+        double quotient = std::floor(py_as_double(left) / divisor);
+        if (py_is_int(left) && py_is_int(right)) {
+            return PyValue(static_cast<long long>(quotient));
+        }
+        return PyValue(quotient);
+    }
+    throw PyRuntimeError(py_unsupported_operand_types("//", left, right));
+}
+
+PyValue py_pow(const PyValue& left, const PyValue& right) {
+    if (py_is_number(left) && py_is_number(right)) {
+        return PyValue(std::pow(py_as_double(left), py_as_double(right)));
+    }
+    throw PyRuntimeError(py_unsupported_operand_types("**", left, right));
 }
 
 // Comparison operations
