@@ -125,6 +125,58 @@ TEST_CASES = [
         ),
         expected_output="16",
     ),
+    CodegenCase(
+        name="elif_chain",
+        source=(
+            "x = 2\n"
+            "if x == 1:\n"
+            "    print(\"one\")\n"
+            "elif x == 2:\n"
+            "    print(\"two\")\n"
+            "elif x == 3:\n"
+            "    print(\"three\")\n"
+            "else:\n"
+            "    print(\"other\")\n"
+        ),
+        expected_output="two",
+    ),
+    CodegenCase(
+        name="nested_loops",
+        source=(
+            "total = 0\n"
+            "for i in range(3):\n"
+            "    for j in range(3):\n"
+            "        total += i * j\n"
+            "print(total)\n"
+        ),
+        expected_output="9",
+    ),
+    CodegenCase(
+        name="break_and_continue",
+        source=(
+            "total = 0\n"
+            "for i in range(10):\n"
+            "    if i == 5:\n"
+            "        break\n"
+            "    if i % 2 == 0:\n"
+            "        continue\n"
+            "    total += i\n"
+            "print(total)\n"
+        ),
+        expected_output="4",
+    ),
+    CodegenCase(
+        name="pass_statement",
+        source=(
+            "x = 0\n"
+            "if x == 0:\n"
+            "    pass\n"
+            "else:\n"
+            "    x = 99\n"
+            "print(x)\n"
+        ),
+        expected_output="0",
+    ),
 ]
 
 
