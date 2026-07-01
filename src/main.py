@@ -11,6 +11,12 @@ from pathlib import Path
 from lexer.lexer_builder import FanglessLexer
 from parser.parser_builder import FanglessParser
 from codegen.transpiler import transpile_ast, TranspileError
+from codegen.compiler import (
+    compile_cpp,
+    run_executable,
+    CompilerNotFoundError,
+    CompilationError,
+)
 
 
 def main():
@@ -19,16 +25,33 @@ def main():
 
     args = sys.argv[1:]
     emit_cpp = False
+    compile_flag = False
+    run_flag = False
     output_file = None
 
     if "--codegen" in args:
         emit_cpp = True
         args.remove("--codegen")
 
+    if "--compile" in args:
+        compile_flag = True
+        args.remove("--compile")
+
+    if "--run" in args:
+        run_flag = True
+        args.remove("--run")
+
+    # --compile and --run both require generating C++ first.
+    if compile_flag or run_flag:
+        emit_cpp = True
+
     if "--output" in args:
         output_index = args.index("--output")
         if output_index + 1 >= len(args):
-            print("Usage: python src/main.py [--codegen] [--output file.cpp] <input_file>")
+            print(
+                "Usage: python src/main.py "
+                "[--codegen] [--compile] [--run] [--output file.cpp] <input_file>"
+            )
             sys.exit(1)
         output_file = args[output_index + 1]
         del args[output_index : output_index + 2]
@@ -60,11 +83,39 @@ def main():
             print(f"Transpile error: {error}")
             sys.exit(1)
 
+        need_binary = compile_flag or run_flag
+
+        # Compiling or running requires the C++ on disk; default the path
+        # to the input file name with a .cpp suffix when --output is omitted.
+        if output_file is None and need_binary:
+            output_file = str(Path(input_file).with_suffix(".cpp"))
+
         if output_file:
             Path(output_file).write_text(cpp_source, encoding="utf-8")
             print(f"Generated C++: {output_file}")
         else:
             print(cpp_source)
+
+        if need_binary:
+            cpp_path = Path(output_file)
+            exe_path = cpp_path.with_suffix(".exe")
+            try:
+                compile_cpp(cpp_path, exe_path)
+            except CompilerNotFoundError as error:
+                print(f"Compiler error: {error}")
+                sys.exit(1)
+            except CompilationError as error:
+                print(f"Compilation failed:\n{error}")
+                sys.exit(1)
+            print(f"Compiled executable: {exe_path}")
+
+            if run_flag:
+                print(f"--- Running {exe_path.name} ---")
+                # Flush our own buffered output so the child process's stdout
+                # appears after these status lines, not before them.
+                sys.stdout.flush()
+                completed = run_executable(exe_path)
+                sys.exit(completed.returncode)
         return
 
     lexer = FanglessLexer()

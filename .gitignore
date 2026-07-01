@@ -140,3 +140,11 @@ Thumbs.db
 # Project specific
 *.pyc
 .venv/
+
+# Compiled C++ artifacts
+*.exe
+*.out
+a.out
+
+# Benchmark build artifacts (regenerable; CSV and PNG results are kept)
+benchmarks/results/build/
