@@ -195,10 +195,10 @@ Legend: ✅ Implemented · ⚠️ Partial · ❌ Not implemented
 | `return` / `return expr` | ✅ | |
 | `break` / `continue` | ✅ | |
 | `pass` | ✅ | No-op |
-| `try` / `except` / `finally` | ❌ | Parser supports it; emitter does not |
+| `try` / `except` / `finally` | ⚠️ | `try/except` supported; `finally` partial |
 | `raise` | ❌ | |
-| Nested `def` inside functions | ❌ | Explicit `TranspileError` |
-| Class definitions | ❌ | Parser supports it; emitter does not |
+| Nested `def` inside functions | ✅ | |
+| Class definitions | ✅ | Basic OOP |
 
 ### Expressions and Literals
 
@@ -211,13 +211,18 @@ Legend: ✅ Implemented · ⚠️ Partial · ❌ Not implemented
 | Unary `-`, `+`, `not` | ✅ | |
 | Subscript read `obj[index]` | ✅ | `py_get_item` |
 | Subscript write `obj[i] = v` | ✅ | `py_set_item` |
-| Tuple literals | ❌ | |
+| Tuple literals | ✅ | |
+| Slicing `a[start:stop]` | ✅ | Lists and strings |
+| Default parameters `def f(a=1)` | ✅ | |
+| String methods `.lower()`, `.upper()`, `.strip()` | ✅ | |
+| Nested `def` inside functions | ✅ | Mangled names (`outer_inner`) |
+| `try` / `except` | ✅ | Maps to `catch (PyRuntimeError)` |
+| Class definitions (basic) | ✅ | `__init__`, methods, attributes, instantiation |
+| Attribute access / assignment | ✅ | `self.x`, `obj.attr` |
+| `try-finally` | ⚠️ | Partial |
 | Dict / set literals | ❌ | |
-| Slicing `a[start:stop]` | ❌ | |
-| Attribute access `obj.attr` | ❌ | |
-| Attribute assignment `obj.x = v` | ❌ | |
-| Method calls (general) | ⚠️ | Only `.append()` on lists |
-| `**=` / `//=` compound assignment | ❌ | Parser supports; emitter does not |
+| `*args` / `**kwargs` | ❌ | |
+| `raise` | ❌ | |
 
 ### Built-in Functions (Runtime + Emitter)
 
@@ -262,27 +267,30 @@ Legend: ✅ Implemented · ⚠️ Partial · ❌ Not implemented
 
 ### Transpiler (correctness — 40 pts rubric)
 
-High priority to reach full parser coverage:
+Remaining gaps for full parser coverage:
 
-1. **Classes and OOP** — `class_def`, `attribute_access`, general `method_call`
-2. **Data structures** — tuples, dicts, sets, slicing
-3. **Exception handling** — `try` / `except` / `finally`, `raise`
-4. **Advanced functions** — default parameters, `*args`, `**kwargs`
-5. **Compound assignments** — `//=`, `**=`
-6. **Semantic errors** — undeclared variables are caught; broader semantic analysis is not implemented
+1. **Data structures** — dicts, sets
+2. **Exception handling** — `raise`, full `finally`
+3. **Advanced functions** — `*args`, `**kwargs`
+4. **Compound assignments** — `//=`, `**=`
+5. **General method calls** — beyond strings/lists/instances
 
-### Performance Analysis (rubric — not in `codegen` yet)
+### Performance Analysis (assignment requirement)
 
-The PDF requires benchmarking and documentation:
+Benchmark scripts live in `benchmarks/` at the repository root:
 
 | Benchmark | Status |
 |-----------|--------|
-| Recursive Fibonacci (n = 1..50) | ❌ Not implemented |
-| Iterative Fibonacci (n = 1..50) | ❌ Not implemented |
-| Custom algorithm (≥10 input sizes) | ❌ Not implemented |
-| Tables, graphs, and written analysis | ❌ Not implemented |
+| Recursive Fibonacci (n = 1..34) | ✅ Implemented (35..50 omitted — exponential cost) |
+| Iterative Fibonacci (n = 1..50) | ✅ Implemented |
+| Custom algorithm — bubble sort (10 input sizes) | ✅ Implemented |
+| Tables, graphs, and written analysis | ✅ See `benchmarks/results/PERFORMANCE_ANALYSIS.md` |
 
-These require separate benchmark scripts and a results document outside this package.
+```bash
+python benchmarks/run_benchmarks.py --samples 5
+python benchmarks/plot_results.py
+python benchmarks/generate_report.py
+```
 
 ### Error Handling (rubric — 15 pts)
 
@@ -290,7 +298,7 @@ These require separate benchmark scripts and a results document outside this pac
 |-------|--------|
 | Lexical errors (unknown chars, bad escapes, indentation) | ✅ In lexer |
 | Syntax errors (invalid grammar, malformed expressions) | ✅ In parser |
-| Transpile errors (unsupported AST nodes) | ⚠️ `TranspileError` with message; no line/column yet |
+| Transpile errors (unsupported AST nodes) | ✅ `TranspileError` with line/column |
 | Runtime errors (`PyRuntimeError`) | ✅ In C++ runtime |
 
 ---
@@ -299,8 +307,7 @@ These require separate benchmark scripts and a results document outside this pac
 
 1. Extend `cpp_emitter.py` for classes, dicts, and exception nodes already parsed by the grammar.
 2. Add runtime support for dict/set/tuple in `cpp_runtime.py` before emitting those constructs.
-3. Create `tests/benchmarks/` for Fibonacci and the custom algorithm required by the PDF.
-4. Add line/column information to `TranspileError` for easier debugging.
+3. Add line/column information to `TranspileError` for easier debugging. ✅ Done — see `tests/transpile/run_transpile_error_tests.py`
 
 ---
 
@@ -318,4 +325,5 @@ cpp = transpile_source(open("program.py").read(), parser)
 # Full validation pipeline
 python tests/runtime/run_runtime_smoke_test.py
 python tests/codegen/run_codegen_tests.py
+python tests/transpile/run_transpile_error_tests.py
 ```

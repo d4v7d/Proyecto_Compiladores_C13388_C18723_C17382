@@ -1,5 +1,61 @@
 """Basic AST node structures for the Fangless parser."""
 
+_parse_source = ""
+
+
+def set_parse_source(source: str) -> None:
+    """Store source text so token positions can be mapped to columns."""
+    global _parse_source
+    _parse_source = source
+
+
+def token_location(parser, index: int) -> tuple[int | None, int | None]:
+    """Return (line, column) for a PLY production slice index."""
+    try:
+        token = parser.slice[index]
+    except (IndexError, AttributeError, TypeError):
+        return None, None
+
+    if token is None:
+        return None, None
+
+    lineno = getattr(token, "lineno", None)
+    column = None
+    lexpos = getattr(token, "lexpos", None)
+    if _parse_source and lexpos is not None:
+        line_start = _parse_source.rfind("\n", 0, lexpos) + 1
+        column = (lexpos - line_start) + 1
+
+    return lineno, column
+
+
+def make_node(parser, slice_index, node_type, value=None, children=None):
+    """Create an AST node with source location from a grammar production token."""
+    lineno, column = token_location(parser, slice_index)
+    return ASTNode(
+        node_type,
+        value=value,
+        children=children,
+        lineno=lineno,
+        column=column,
+    )
+
+
+def propagate_locations(node: "ASTNode") -> None:
+    """Fill missing parent locations from the first located child."""
+    for child in node.children:
+        if isinstance(child, ASTNode):
+            propagate_locations(child)
+
+    if node.lineno is not None:
+        return
+
+    for child in node.children:
+        if isinstance(child, ASTNode) and child.lineno is not None:
+            node.lineno = child.lineno
+            node.column = child.column
+            return
+
 
 class ASTNode:
     """Simple tree node used by the initial parser grammar."""
@@ -18,15 +74,18 @@ class ASTNode:
         "grouped_expression": "GroupedExpression",
     }
 
-    def __init__(self, node_type, value=None, children=None):
+    def __init__(self, node_type, value=None, children=None, lineno=None, column=None):
         self.node_type = node_type
         self.value = value
         self.children = children or []
+        self.lineno = lineno
+        self.column = column
 
     def __repr__(self):
         return (
             f"ASTNode(node_type={self.node_type!r}, "
-            f"value={self.value!r}, children={self.children!r})"
+            f"value={self.value!r}, children={self.children!r}, "
+            f"lineno={self.lineno!r}, column={self.column!r})"
         )
 
     def pretty_print(self):

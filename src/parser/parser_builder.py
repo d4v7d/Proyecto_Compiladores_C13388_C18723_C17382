@@ -7,6 +7,7 @@ from lexer.token_definitions import tokens
 
 from . import grammar_rules
 from . import grammar_extensions
+from .ast_nodes import propagate_locations, set_parse_source
 from .parser_errors import ParserError
 from .precedence import precedence
 
@@ -46,6 +47,7 @@ class FanglessParser:
     def parse(self, source_code):
         self.errors.clear()
         self.source_code = source_code
+        set_parse_source(source_code)
         token_list = self.lexer.tokenize(source_code)
         token_stream = _TokenStream(token_list)
         # Kept so p_error can recover a line number when PLY reports EOF
@@ -58,6 +60,9 @@ class FanglessParser:
 
         if self.errors:
             return None
+
+        if ast is not None:
+            propagate_locations(ast)
 
         return ast
 

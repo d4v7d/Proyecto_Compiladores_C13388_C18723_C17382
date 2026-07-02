@@ -10,7 +10,7 @@ Functions with the same name as grammar_rules.py override the old limited versio
                                now   expression[expr]       (any subscriptable expr)
 """
 
-from .ast_nodes import ASTNode
+from .ast_nodes import ASTNode, make_node
 
 # ============================================================================
 # CLASS DEFINITION
@@ -24,7 +24,9 @@ def p_statement_class_def(parser):
 def p_class_def_simple(parser):
     "class_def : CLASS IDENTIFIER COLON NEWLINE indented_block"
     # class Foo:\n    ...
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        2,
         "class_def",
         value=parser[2],
         children=[ASTNode("block", children=parser[5])],
@@ -34,7 +36,9 @@ def p_class_def_simple(parser):
 def p_class_def_empty_parens(parser):
     "class_def : CLASS IDENTIFIER LPAREN RPAREN COLON NEWLINE indented_block"
     # class Foo():\n    ...  (explicit empty base list)
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        2,
         "class_def",
         value=parser[2],
         children=[ASTNode("block", children=parser[7])],
@@ -44,7 +48,9 @@ def p_class_def_empty_parens(parser):
 def p_class_def_with_base(parser):
     "class_def : CLASS IDENTIFIER LPAREN IDENTIFIER RPAREN COLON NEWLINE indented_block"
     # class Child(Parent):\n    ...  (single inheritance)
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        2,
         "class_def",
         value=parser[2],
         children=[
@@ -82,7 +88,9 @@ def p_expression_method_call(parser):
         # argument_list is already a list (from grammar_rules.py p_argument_list_*)
         args = parser[5] if isinstance(parser[5], list) else [parser[5]]
 
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        3,
         "method_call",
         value=parser[3],          # method name
         children=[parser[1]] + args,  # object + arguments
@@ -109,7 +117,9 @@ def p_expression_subscript(parser):
 def p_expression_slice_full(parser):
     "expression : expression LBRACKET expression COLON expression RBRACKET"
     # expr[start:stop]
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        2,
         "slice",
         children=[
             parser[1],
@@ -168,12 +178,14 @@ def p_assignment_attribute(parser):
                   | expression DOT IDENTIFIER FLOOR_DIVIDE_ASSIGN expression
                   | expression DOT IDENTIFIER POWER_ASSIGN expression"""
     # self.x = value  /  obj.counter += 1  /  etc.
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        3,
         "attribute_assignment",
         value=parser[4],                        # operator (=, +=, …)
         children=[
             parser[1],                          # object expression
-            ASTNode("identifier", value=parser[3]),  # attribute name
+            make_node(parser, 3, "identifier", value=parser[3]),  # attribute name
             parser[5],                          # right-hand side value
         ],
     )
@@ -208,13 +220,13 @@ def p_assignment_subscript(parser):
 def p_expression_tuple_multi(parser):
     "expression : LPAREN tuple_items RPAREN"
     # (a, b)  /  (a, b, c)  /  (1 + 2, x * y)
-    parser[0] = ASTNode("tuple_literal", children=parser[2])
+    parser[0] = make_node(parser, 1, "tuple_literal", children=parser[2])
 
 
 def p_expression_tuple_single(parser):
     "expression : LPAREN expression COMMA RPAREN"
     # (a,)  — single-element tuple (the trailing comma distinguishes it from grouping)
-    parser[0] = ASTNode("tuple_literal", children=[parser[2]])
+    parser[0] = make_node(parser, 1, "tuple_literal", children=[parser[2]])
 
 
 def p_tuple_items_base(parser):

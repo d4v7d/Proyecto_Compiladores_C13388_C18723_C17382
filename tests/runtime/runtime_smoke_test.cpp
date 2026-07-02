@@ -6,6 +6,9 @@
 #include <sstream>
 #include <cstddef>
 #include <cmath>
+#include <unordered_map>
+#include <algorithm>
+#include <cctype>
 
 // Runtime errors
 // Used for invalid operations, failed conversions, and out-of-range access.
@@ -20,7 +23,14 @@ public:
 class PyValue {
 public:
     using List = std::vector<PyValue>;
-    using Value = std::variant<std::monostate, long long, double, bool, std::string, List>;
+    struct Tuple {
+        List items;
+    };
+    struct Instance {
+        std::string class_name;
+        std::unordered_map<std::string, PyValue> attrs;
+    };
+    using Value = std::variant<std::monostate, long long, double, bool, std::string, List, Tuple, Instance>;
 
     Value data;
 
@@ -51,6 +61,12 @@ public:
     PyValue(const List& value)
         : data(value) {}
 
+    PyValue(const Tuple& value)
+        : data(value) {}
+
+    PyValue(const Instance& value)
+        : data(value) {}
+
     std::string type_name() const {
         if (std::holds_alternative<std::monostate>(data)) {
             return "NoneType";
@@ -70,7 +86,30 @@ public:
         if (std::holds_alternative<List>(data)) {
             return "list";
         }
+        if (std::holds_alternative<Tuple>(data)) {
+            return "tuple";
+        }
+        if (std::holds_alternative<Instance>(data)) {
+            return "instance";
+        }
         throw PyRuntimeError("Unknown PyValue type");
+    }
+
+    std::string tuple_to_string(const Tuple& tuple) const {
+        const List& values = tuple.items;
+        std::ostringstream stream;
+        stream << "(";
+        for (std::size_t index = 0; index < values.size(); ++index) {
+            if (index > 0) {
+                stream << ", ";
+            }
+            stream << values[index].to_string();
+        }
+        if (values.size() == 1) {
+            stream << ",";
+        }
+        stream << ")";
+        return stream.str();
     }
 
     std::string to_string() const {
@@ -104,11 +143,26 @@ public:
             stream << "]";
             return stream.str();
         }
+        if (std::holds_alternative<Tuple>(data)) {
+            return tuple_to_string(std::get<Tuple>(data));
+        }
+        if (std::holds_alternative<Instance>(data)) {
+            const Instance& instance = std::get<Instance>(data);
+            return "<" + instance.class_name + " instance>";
+        }
         throw PyRuntimeError("Unknown PyValue type");
     }
 };
 
 // Type helpers
+bool py_is_none(const PyValue& value) {
+    return std::holds_alternative<std::monostate>(value.data);
+}
+
+PyValue py_none() {
+    return PyValue();
+}
+
 bool py_is_int(const PyValue& value) {
     return std::holds_alternative<long long>(value.data);
 }
@@ -334,6 +388,12 @@ bool py_truthy(const PyValue& value) {
     if (std::holds_alternative<PyValue::List>(value.data)) {
         return !std::get<PyValue::List>(value.data).empty();
     }
+    if (std::holds_alternative<PyValue::Tuple>(value.data)) {
+        return !std::get<PyValue::Tuple>(value.data).items.empty();
+    }
+    if (std::holds_alternative<PyValue::Instance>(value.data)) {
+        return true;
+    }
     throw PyRuntimeError("Unknown PyValue type");
 }
 
@@ -407,6 +467,14 @@ bool py_is_list(const PyValue& value) {
     return std::holds_alternative<PyValue::List>(value.data);
 }
 
+bool py_is_tuple(const PyValue& value) {
+    return std::holds_alternative<PyValue::Tuple>(value.data);
+}
+
+bool py_is_instance(const PyValue& value) {
+    return std::holds_alternative<PyValue::Instance>(value.data);
+}
+
 const PyValue::List& py_as_list(const PyValue& value) {
     if (py_is_list(value)) {
         return std::get<PyValue::List>(value.data);
@@ -423,6 +491,60 @@ PyValue::List& py_as_list_mut(PyValue& value) {
 
 PyValue py_list(const PyValue::List& values) {
     return PyValue(values);
+}
+
+PyValue py_tuple(const PyValue::Tuple& values) {
+    return PyValue(values);
+}
+
+PyValue py_tuple_from_list(const PyValue::List& values) {
+    PyValue::Tuple tuple;
+    tuple.items = values;
+    return PyValue(tuple);
+}
+
+const PyValue::Tuple& py_as_tuple(const PyValue& value) {
+    if (py_is_tuple(value)) {
+        return std::get<PyValue::Tuple>(value.data);
+    }
+    throw PyRuntimeError("Expected tuple, got " + value.type_name());
+}
+
+const PyValue::List& py_tuple_items(const PyValue& value) {
+    return py_as_tuple(value).items;
+}
+
+PyValue::Instance& py_as_instance_mut(PyValue& value) {
+    if (py_is_instance(value)) {
+        return std::get<PyValue::Instance>(value.data);
+    }
+    throw PyRuntimeError("Expected instance, got " + value.type_name());
+}
+
+const PyValue::Instance& py_as_instance(const PyValue& value) {
+    if (py_is_instance(value)) {
+        return std::get<PyValue::Instance>(value.data);
+    }
+    throw PyRuntimeError("Expected instance, got " + value.type_name());
+}
+
+PyValue py_make_instance(const std::string& class_name) {
+    PyValue::Instance instance;
+    instance.class_name = class_name;
+    return PyValue(instance);
+}
+
+PyValue py_get_attr(const PyValue& object, const std::string& name) {
+    const PyValue::Instance& instance = py_as_instance(object);
+    auto iterator = instance.attrs.find(name);
+    if (iterator == instance.attrs.end()) {
+        throw PyRuntimeError("Instance has no attribute '" + name + "'");
+    }
+    return iterator->second;
+}
+
+void py_set_attr(PyValue& object, const std::string& name, const PyValue& value) {
+    py_as_instance_mut(object).attrs[name] = value;
 }
 
 long long py_normalize_index(long long index, std::size_t size) {
@@ -443,12 +565,18 @@ PyValue py_len(const PyValue& value) {
     if (py_is_list(value)) {
         return PyValue(static_cast<long long>(py_as_list(value).size()));
     }
+    if (py_is_tuple(value)) {
+        return PyValue(static_cast<long long>(py_tuple_items(value).size()));
+    }
     throw PyRuntimeError("Object of type " + value.type_name() + " has no len()");
 }
 
 PyValue::List py_iter(const PyValue& value) {
     if (py_is_list(value)) {
         return py_as_list(value);
+    }
+    if (py_is_tuple(value)) {
+        return py_tuple_items(value);
     }
     if (std::holds_alternative<std::string>(value.data)) {
         const std::string& text = std::get<std::string>(value.data);
@@ -468,6 +596,11 @@ PyValue py_get_item(const PyValue& collection, const PyValue& index) {
         long long normalized_index = py_normalize_index(raw_index, values.size());
         return values[static_cast<std::size_t>(normalized_index)];
     }
+    if (py_is_tuple(collection)) {
+        const PyValue::List& values = py_tuple_items(collection);
+        long long normalized_index = py_normalize_index(raw_index, values.size());
+        return values[static_cast<std::size_t>(normalized_index)];
+    }
     if (std::holds_alternative<std::string>(collection.data)) {
         const std::string& text = std::get<std::string>(collection.data);
         long long normalized_index = py_normalize_index(raw_index, text.size());
@@ -483,7 +616,133 @@ void py_set_item(PyValue& collection, const PyValue& index, const PyValue& new_v
 }
 
 void py_append(PyValue& collection, const PyValue& new_value) {
+    if (py_is_tuple(collection)) {
+        throw PyRuntimeError("Tuple does not support append");
+    }
     py_as_list_mut(collection).push_back(new_value);
+}
+
+long long py_optional_index(const PyValue& value, long long size, long long default_value) {
+    if (py_is_none(value)) {
+        return default_value;
+    }
+    long long raw = py_as_int(value);
+    if (raw < 0) {
+        raw += size;
+    }
+    if (raw < 0) {
+        return 0;
+    }
+    if (raw > size) {
+        return size;
+    }
+    return raw;
+}
+
+PyValue py_slice_sequence(
+    const PyValue& collection,
+    const PyValue& start,
+    const PyValue& stop,
+    const PyValue& step
+) {
+    long long step_value = py_is_none(step) ? 1LL : py_as_int(step);
+    if (step_value == 0) {
+        throw PyRuntimeError("slice step cannot be zero");
+    }
+
+    if (py_is_list(collection)) {
+        const PyValue::List& values = py_as_list(collection);
+        long long size = static_cast<long long>(values.size());
+        long long start_index = py_is_none(start) ? (step_value > 0 ? 0 : size - 1) : py_optional_index(start, size, 0);
+        long long stop_index = py_is_none(stop) ? (step_value > 0 ? size : -1) : py_optional_index(stop, size, size);
+        PyValue::List result;
+        if (step_value > 0) {
+            for (long long index = start_index; index < stop_index; index += step_value) {
+                result.push_back(values[static_cast<std::size_t>(index)]);
+            }
+        } else {
+            for (long long index = start_index; index > stop_index; index += step_value) {
+                result.push_back(values[static_cast<std::size_t>(index)]);
+            }
+        }
+        return py_list(result);
+    }
+
+    if (py_is_tuple(collection)) {
+        const PyValue::List& values = py_tuple_items(collection);
+        long long size = static_cast<long long>(values.size());
+        long long start_index = py_is_none(start) ? (step_value > 0 ? 0 : size - 1) : py_optional_index(start, size, 0);
+        long long stop_index = py_is_none(stop) ? (step_value > 0 ? size : -1) : py_optional_index(stop, size, size);
+        PyValue::List result;
+        if (step_value > 0) {
+            for (long long index = start_index; index < stop_index; index += step_value) {
+                result.push_back(values[static_cast<std::size_t>(index)]);
+            }
+        } else {
+            for (long long index = start_index; index > stop_index; index += step_value) {
+                result.push_back(values[static_cast<std::size_t>(index)]);
+            }
+        }
+        return py_tuple_from_list(result);
+    }
+
+    if (std::holds_alternative<std::string>(collection.data)) {
+        const std::string& text = std::get<std::string>(collection.data);
+        long long size = static_cast<long long>(text.size());
+        long long start_index = py_is_none(start) ? (step_value > 0 ? 0 : size - 1) : py_optional_index(start, size, 0);
+        long long stop_index = py_is_none(stop) ? (step_value > 0 ? size : -1) : py_optional_index(stop, size, size);
+        std::string result;
+        if (step_value > 0) {
+            for (long long index = start_index; index < stop_index; index += step_value) {
+                result.push_back(text[static_cast<std::size_t>(index)]);
+            }
+        } else {
+            for (long long index = start_index; index > stop_index; index += step_value) {
+                result.push_back(text[static_cast<std::size_t>(index)]);
+            }
+        }
+        return PyValue(result);
+    }
+
+    throw PyRuntimeError("Object of type " + collection.type_name() + " does not support slicing");
+}
+
+PyValue py_str_lower(const PyValue& value) {
+    if (!std::holds_alternative<std::string>(value.data)) {
+        throw PyRuntimeError("lower() expects str, got " + value.type_name());
+    }
+    std::string text = std::get<std::string>(value.data);
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return PyValue(text);
+}
+
+PyValue py_str_upper(const PyValue& value) {
+    if (!std::holds_alternative<std::string>(value.data)) {
+        throw PyRuntimeError("upper() expects str, got " + value.type_name());
+    }
+    std::string text = std::get<std::string>(value.data);
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::toupper(ch));
+    });
+    return PyValue(text);
+}
+
+PyValue py_str_strip(const PyValue& value) {
+    if (!std::holds_alternative<std::string>(value.data)) {
+        throw PyRuntimeError("strip() expects str, got " + value.type_name());
+    }
+    const std::string& text = std::get<std::string>(value.data);
+    std::size_t begin = 0;
+    while (begin < text.size() && std::isspace(static_cast<unsigned char>(text[begin]))) {
+        ++begin;
+    }
+    std::size_t end = text.size();
+    while (end > begin && std::isspace(static_cast<unsigned char>(text[end - 1]))) {
+        --end;
+    }
+    return PyValue(text.substr(begin, end - begin));
 }
 
 PyValue py_range(const PyValue& start, const PyValue& stop, const PyValue& step) {

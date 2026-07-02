@@ -177,6 +177,74 @@ TEST_CASES = [
         ),
         expected_output="0",
     ),
+    CodegenCase(
+        name="tuple_literal",
+        source="pair = (1, 2)\nprint(pair[0], len(pair))\n",
+        expected_output="1 2",
+    ),
+    CodegenCase(
+        name="string_slicing",
+        source=(
+            'text = "Hello World"\n'
+            "print(text[:5])\n"
+            "print(text[6:])\n"
+        ),
+        expected_output="Hello\nWorld",
+    ),
+    CodegenCase(
+        name="default_parameters",
+        source=(
+            "def greet(name=\"world\"):\n"
+            "    return name\n"
+            "print(greet())\n"
+            "print(greet(\"Fangless\"))\n"
+        ),
+        expected_output="world\nFangless",
+    ),
+    CodegenCase(
+        name="string_methods",
+        source=(
+            'text = " Hello "\n'
+            "print(text.strip().lower())\n"
+        ),
+        expected_output="hello",
+    ),
+    CodegenCase(
+        name="nested_function",
+        source=(
+            "def outer():\n"
+            "    def inner():\n"
+            "        return 7\n"
+            "    return inner()\n"
+            "print(outer())\n"
+        ),
+        expected_output="7",
+    ),
+    CodegenCase(
+        name="try_except",
+        source=(
+            "value = 0\n"
+            "try:\n"
+            "    value = 10\n"
+            "except:\n"
+            "    value = 99\n"
+            "print(value)\n"
+        ),
+        expected_output="10",
+    ),
+    CodegenCase(
+        name="basic_class",
+        source=(
+            "class Dog:\n"
+            "    def __init__(self, name):\n"
+            "        self.name = name\n"
+            "    def describe(self):\n"
+            "        return self.name\n"
+            "pet = Dog(\"Rex\")\n"
+            "print(pet.describe())\n"
+        ),
+        expected_output="Rex",
+    ),
 ]
 
 

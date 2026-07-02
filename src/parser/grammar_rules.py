@@ -7,7 +7,7 @@ This module contains rules for:
 - Exception handling (try/except/finally)
 """
 
-from .ast_nodes import ASTNode
+from .ast_nodes import ASTNode, make_node
 
 
 def p_program(parser):
@@ -140,7 +140,12 @@ def p_statement_raise(parser):
 def p_if_statement(parser):
     "if_statement : IF expression COLON NEWLINE indented_block"
     # Simple if without elif or else
-    parser[0] = ASTNode("if_statement", children=[parser[2], ASTNode("block", children=parser[5])])
+    parser[0] = make_node(
+        parser,
+        1,
+        "if_statement",
+        children=[parser[2], ASTNode("block", children=parser[5])],
+    )
 
 
 def p_if_statement_with_tail(parser):
@@ -152,7 +157,7 @@ def p_if_statement_with_tail(parser):
         children.extend(parser[6])
     else:
         children.append(parser[6])
-    parser[0] = ASTNode("if_statement", children=children)
+    parser[0] = make_node(parser, 1, "if_statement", children=children)
 
 
 def p_elif_clause_chain_single(parser):
@@ -188,7 +193,12 @@ def p_else_clause(parser):
 
 def p_while_statement(parser):
     "while_statement : WHILE expression COLON NEWLINE indented_block"
-    parser[0] = ASTNode("while_statement", children=[parser[2], ASTNode("block", children=parser[5])])
+    parser[0] = make_node(
+        parser,
+        1,
+        "while_statement",
+        children=[parser[2], ASTNode("block", children=parser[5])],
+    )
 
 
 # ============================================================================
@@ -197,13 +207,15 @@ def p_while_statement(parser):
 
 def p_for_statement(parser):
     "for_statement : FOR IDENTIFIER IN expression COLON NEWLINE indented_block"
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        1,
         "for_statement",
         children=[
-            ASTNode("identifier", value=parser[2]),
+            make_node(parser, 2, "identifier", value=parser[2]),
             parser[4],
             ASTNode("block", children=parser[7]),
-        ]
+        ],
     )
 
 
@@ -213,7 +225,7 @@ def p_for_statement(parser):
 
 def p_break_statement(parser):
     "break_statement : BREAK"
-    parser[0] = ASTNode("break_statement")
+    parser[0] = make_node(parser, 1, "break_statement")
 
 
 def p_continue_statement(parser):
@@ -246,25 +258,29 @@ def p_return_statement_empty(parser):
 
 def p_function_def_no_params(parser):
     "function_def : DEF IDENTIFIER LPAREN RPAREN COLON NEWLINE indented_block"
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        2,
         "function_def",
         value=parser[2],
         children=[
             ASTNode("parameters", children=[]),
             ASTNode("block", children=parser[7]),
-        ]
+        ],
     )
 
 
 def p_function_def_with_params(parser):
     "function_def : DEF IDENTIFIER LPAREN parameter_list RPAREN COLON NEWLINE indented_block"
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        2,
         "function_def",
         value=parser[2],
         children=[
             ASTNode("parameters", children=parser[4]),
             ASTNode("block", children=parser[8]),
-        ]
+        ],
     )
 
 
@@ -280,21 +296,23 @@ def p_parameter_list_multiple(parser):
 
 def p_parameter_simple(parser):
     "parameter : IDENTIFIER"
-    parser[0] = ASTNode("parameter", value=parser[1])
+    parser[0] = make_node(parser, 1, "parameter", value=parser[1])
 
 
 def p_parameter_with_default(parser):
     "parameter : IDENTIFIER ASSIGN expression"
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        1,
         "parameter",
         value=parser[1],
-        children=[parser[3]]
+        children=[parser[3]],
     )
 
 
 def p_parameter_var_args(parser):
     "parameter : TIMES IDENTIFIER"
-    parser[0] = ASTNode("var_args", value=parser[2])
+    parser[0] = make_node(parser, 1, "var_args", value=parser[2])
 
 
 def p_parameter_var_kwargs(parser):
@@ -308,17 +326,21 @@ def p_parameter_var_kwargs(parser):
 
 def p_try_statement_except(parser):
     "try_statement : TRY COLON NEWLINE indented_block except_clause_list"
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        1,
         "try_statement",
-        children=[ASTNode("block", children=parser[4])] + parser[5]
+        children=[ASTNode("block", children=parser[4])] + parser[5],
     )
 
 
 def p_try_statement_finally(parser):
     "try_statement : TRY COLON NEWLINE indented_block finally_clause"
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        1,
         "try_statement",
-        children=[ASTNode("block", children=parser[4]), parser[5]]
+        children=[ASTNode("block", children=parser[4]), parser[5]],
     )
 
 
@@ -392,11 +414,13 @@ def p_assignment(parser):
                   | IDENTIFIER MOD_ASSIGN expression
                   | IDENTIFIER FLOOR_DIVIDE_ASSIGN expression
                   | IDENTIFIER POWER_ASSIGN expression"""
-    parser[0] = ASTNode(
+    parser[0] = make_node(
+        parser,
+        1,
         "assignment",
         value=parser[2],
         children=[
-            ASTNode("identifier", value=parser[1]),
+            make_node(parser, 1, "identifier", value=parser[1]),
             parser[3],
         ],
     )
@@ -408,12 +432,12 @@ def p_assignment(parser):
 
 def p_expression_identifier(parser):
     "expression : IDENTIFIER"
-    parser[0] = ASTNode("identifier", value=parser[1])
+    parser[0] = make_node(parser, 1, "identifier", value=parser[1])
 
 
 def p_expression_integer(parser):
     "expression : INTEGER"
-    parser[0] = ASTNode("integer_literal", value=parser[1])
+    parser[0] = make_node(parser, 1, "integer_literal", value=parser[1])
 
 
 def p_expression_float(parser):

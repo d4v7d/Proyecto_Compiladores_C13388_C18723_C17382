@@ -35,17 +35,25 @@ HANDWRITTEN_DIR = BENCH_DIR / "handwritten_cpp"
 RESULTS_DIR = BENCH_DIR / "results"
 BUILD_DIR = RESULTS_DIR / "build"
 
-# Input sizes per algorithm. Recursive Fibonacci is capped well below 50
-# because naive recursion is exponential;
+# Input sizes per algorithm (assignment: measure n = 1..50 where feasible).
+# Naive recursive Fibonacci is exponential; sizes 35-50 are omitted because
+# fib(50) alone requires ~40 billion calls and would take hours in Python.
 DEFAULT_SIZES = {
-    "fib_recursive": [20, 24, 28, 30, 32, 34],
-    "fib_iterative": [10, 20, 30, 40, 50],
+    "fib_recursive": list(range(1, 35)),
+    "fib_iterative": list(range(1, 51)),
     "bubble_sort": [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
 }
 
+# Per-algorithm timeout overrides (seconds). Recursive Fib grows very fast.
+DEFAULT_TIMEOUTS = {
+    "fib_recursive": 300.0,
+    "fib_iterative": 120.0,
+    "bubble_sort": 120.0,
+}
+
 QUICK_SIZES = {
-    "fib_recursive": [10, 15, 20],
-    "fib_iterative": [10, 20, 30],
+    "fib_recursive": [5, 10, 15, 20],
+    "fib_iterative": [5, 10, 20, 30],
     "bubble_sort": [50, 100, 150],
 }
 
@@ -129,12 +137,14 @@ def main() -> None:
             "handwritten_cpp": [str(handwritten_exe)],
         }
 
+        algorithm_timeout = DEFAULT_TIMEOUTS.get(algorithm, args.timeout)
+
         for size in sizes_table[algorithm]:
             stdin_text = f"{size}\n"
             checksums: dict[str, str] = {}
             for impl_name, command in implementations.items():
                 seconds, output, timed_out = time_run(
-                    command, stdin_text, args.samples, args.timeout
+                    command, stdin_text, args.samples, algorithm_timeout
                 )
                 checksums[impl_name] = "TIMEOUT" if timed_out else output
                 rows.append(
