@@ -1,0 +1,9 @@
+# Recursive Fibonacci benchmark (Fangless Python).
+# Reads N from stdin and prints fib(N) as a checksum.
+def fib(n):
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+n = int(input())
+print(fib(n))
