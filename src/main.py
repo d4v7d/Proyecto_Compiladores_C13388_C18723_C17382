@@ -130,7 +130,7 @@ def main():
         print("\n--- Lexical Errors ---")
         for error in lexer.errors:
             print(error)
-        return
+        sys.exit(1)
 
     parser = FanglessParser()
     ast = parser.parse(source_code)
@@ -140,6 +140,7 @@ def main():
         print("Syntax errors found:")
         for error in parser.errors:
             print(error)
+        sys.exit(1)
     else:
         print("Parse successful")
         if ast is not None:
