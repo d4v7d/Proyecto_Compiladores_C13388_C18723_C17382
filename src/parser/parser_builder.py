@@ -37,6 +37,7 @@ class FanglessParser:
         self.errors = []
         self.lexer = FanglessLexer()
         self.source_code = ""
+        self._last_token_list = []
         yacc_options.setdefault("debug", False)
         yacc_options.setdefault("write_tables", False)
         #yacc_options.setdefault("errorlog", yacc.NullLogger())
@@ -47,6 +48,9 @@ class FanglessParser:
         self.source_code = source_code
         token_list = self.lexer.tokenize(source_code)
         token_stream = _TokenStream(token_list)
+        # Kept so p_error can recover a line number when PLY reports EOF
+        # (it calls p_error(None), which carries no position information).
+        self._last_token_list = token_list
         ast = self.parser.parse(lexer=token_stream)
 
         for error in self.lexer.errors:
@@ -64,7 +68,10 @@ class FanglessParser:
 
     def p_error(self, token):
         if token is None:
-            self.errors.append(ParserError("unexpected end of input"))
+            last_line = self._last_token_list[-1].lineno if self._last_token_list else None
+            self.errors.append(
+                ParserError("unexpected end of input", line=last_line)
+            )
             return
 
         self.errors.append(

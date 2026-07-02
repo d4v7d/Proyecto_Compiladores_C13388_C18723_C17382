@@ -418,6 +418,11 @@ class CppEmitter:
                 return f"py_range({args[0]}, {args[1]}, {args[2]})"
             raise TranspileError("range() accepts 1 to 3 arguments")
 
+        if name == "input":
+            if not args:
+                return "py_input()"
+            raise TranspileError("input() with a prompt argument is not supported")
+
         if len(args) != 1:
             raise TranspileError(f"{name}() expects exactly one argument")
 
@@ -427,7 +432,6 @@ class CppEmitter:
             "float": "py_float",
             "str": "py_str",
             "bool": "py_bool",
-            "input": "py_input",
         }
         return f"{mapping[name]}({args[0]})"
 
